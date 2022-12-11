@@ -6,12 +6,6 @@ enum Direction {
     Right,
 }
 
-// #[derive(Debug)]
-// struct State {
-//     head: (i32, i32),
-//     tail: (i32, i32),
-// }
-
 fn get_input() -> String {
     let args: Vec<String> = std::env::args().collect();
     let path = &args.get(1).expect("No file given");
@@ -68,7 +62,6 @@ fn count_tail_states(state: &mut Vec<(i32, i32)>, moves: &Vec<(Direction, u32)>)
             tail_states.insert(state.last().unwrap().clone());
         }
     }
-    // dbg!(&state);
     tail_states.len()
 }
 
