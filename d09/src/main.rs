@@ -48,31 +48,14 @@ fn perform_move(state: &mut Vec<(i32, i32)>, direction: &Direction) {
     for i in 0..(state.len() - 1) {
         let head = &state[i].clone();
         let tail = &mut state[i + 1];
-        if (tail.0 < (head.0 - 1)) && (tail.1 < (head.1 - 1)) {
-            tail.0 = head.0 - 1;
-            tail.1 = head.1 - 1;
-        } else if (tail.0 > (head.0 + 1)) && (tail.1 < (head.1 - 1)) {
-            tail.0 = head.0 + 1;
-            tail.1 = head.1 - 1;
-        } else if (tail.0 < (head.0 - 1)) && (tail.1 > (head.1 + 1)) {
-            tail.0 = head.0 - 1;
-            tail.1 = head.1 + 1;
-        } else if (tail.0 > (head.0 + 1)) && (tail.1 > (head.1 + 1)) {
-            tail.0 = head.0 + 1;
-            tail.1 = head.1 + 1;
-        } else if tail.0 < (head.0 - 1) {
-            tail.1 = head.1;
-            tail.0 = head.0 - 1;
-        } else if tail.0 > (head.0 + 1) {
-            tail.1 = head.1;
-            tail.0 = head.0 + 1;
-        } else if tail.1 < (head.1 - 1) {
-            tail.0 = head.0;
-            tail.1 = head.1 - 1;
-        } else if tail.1 > (head.1 + 1) {
-            tail.0 = head.0;
-            tail.1 = head.1 + 1;
+        let mut diff = (tail.0 - head.0, tail.1 - head.1);
+        if diff.0.abs() < 2 && diff.1.abs() < 2 {
+            continue;
         }
+        diff.0 = std::cmp::max(-1, std::cmp::min(diff.0, 1));
+        diff.1 = std::cmp::max(-1, std::cmp::min(diff.1, 1));
+        tail.0 -= diff.0;
+        tail.1 -= diff.1;
     }
 }
 
