@@ -6,11 +6,11 @@ enum Direction {
     Right,
 }
 
-#[derive(Debug)]
-struct State {
-    head: (i32, i32),
-    tail: (i32, i32),
-}
+// #[derive(Debug)]
+// struct State {
+//     head: (i32, i32),
+//     tail: (i32, i32),
+// }
 
 fn get_input() -> String {
     let args: Vec<String> = std::env::args().collect();
@@ -37,45 +37,64 @@ fn get_moves(input: &str) -> Vec<(Direction, u32)> {
     res
 }
 
-fn perform_move(state: &mut State, direction: &Direction) {
+fn perform_move(state: &mut Vec<(i32, i32)>, direction: &Direction) {
     match direction {
-        Direction::Up => state.head.1 += 1,
-        Direction::Down => state.head.1 -= 1,
-        Direction::Left => state.head.0 -= 1,
-        Direction::Right => state.head.0 += 1,
+        Direction::Up => state[0].1 += 1,
+        Direction::Down => state[0].1 -= 1,
+        Direction::Left => state[0].0 -= 1,
+        Direction::Right => state[0].0 += 1,
     }
-    if state.tail.0 < (state.head.0 - 1) {
-        state.tail.1 = state.head.1;
-        state.tail.0 = state.head.0 - 1;
-    } else if state.tail.0 > (state.head.0 + 1) {
-        state.tail.1 = state.head.1;
-        state.tail.0 = state.head.0 + 1;
-    } else if state.tail.1 < (state.head.1 - 1) {
-        state.tail.0 = state.head.0;
-        state.tail.1 = state.head.1 - 1;
-    } else if state.tail.1 > (state.head.1 + 1) {
-        state.tail.0 = state.head.0;
-        state.tail.1 = state.head.1 + 1;
+
+    for i in 0..(state.len() - 1) {
+        let head = &state[i].clone();
+        let tail = &mut state[i + 1];
+        if (tail.0 < (head.0 - 1)) && (tail.1 < (head.1 - 1)) {
+            tail.0 = head.0 - 1;
+            tail.1 = head.1 - 1;
+        } else if (tail.0 > (head.0 + 1)) && (tail.1 < (head.1 - 1)) {
+            tail.0 = head.0 + 1;
+            tail.1 = head.1 - 1;
+        } else if (tail.0 < (head.0 - 1)) && (tail.1 > (head.1 + 1)) {
+            tail.0 = head.0 - 1;
+            tail.1 = head.1 + 1;
+        } else if (tail.0 > (head.0 + 1)) && (tail.1 > (head.1 + 1)) {
+            tail.0 = head.0 + 1;
+            tail.1 = head.1 + 1;
+        } else if tail.0 < (head.0 - 1) {
+            tail.1 = head.1;
+            tail.0 = head.0 - 1;
+        } else if tail.0 > (head.0 + 1) {
+            tail.1 = head.1;
+            tail.0 = head.0 + 1;
+        } else if tail.1 < (head.1 - 1) {
+            tail.0 = head.0;
+            tail.1 = head.1 - 1;
+        } else if tail.1 > (head.1 + 1) {
+            tail.0 = head.0;
+            tail.1 = head.1 + 1;
+        }
     }
+}
+
+fn count_tail_states(state: &mut Vec<(i32, i32)>, moves: &Vec<(Direction, u32)>) -> usize {
+    let mut tail_states = std::collections::HashSet::<(i32, i32)>::new();
+    for move_instruction in moves {
+        let (direction, count) = move_instruction;
+        for _ in 0..*count {
+            perform_move(state, &direction);
+            tail_states.insert(state.last().unwrap().clone());
+        }
+    }
+    // dbg!(&state);
+    tail_states.len()
 }
 
 fn main() {
     let input = get_input();
 
     let moves = get_moves(&input);
-    let mut state = State {
-        head: (0, 0),
-        tail: (0, 0),
-    };
-    let mut tail_states = std::collections::HashSet::<(i32, i32)>::new();
-    for move_instruction in moves {
-        let (direction, count) = move_instruction;
-        for _ in 0..count {
-            perform_move(&mut state, &direction);
-            // dbg!(&state);
-            tail_states.insert(state.tail.clone());
-        }
-    }
-    // dbg!(tail_states);
-    dbg!(tail_states.len());
+    let mut state_p1 = vec![(0, 0), (0, 0)];
+    dbg!(count_tail_states(&mut state_p1, &moves));
+    let mut state_p2 = vec![(0, 0); 10];
+    dbg!(count_tail_states(&mut state_p2, &moves));
 }
