@@ -32,12 +32,8 @@ fn manhattan_distance(a: [i32; 2], b: [i32; 2]) -> i32 {
     (a[0] - b[0]).abs() + (a[1] - b[1]).abs()
 }
 
-fn main() {
-    let input = get_input();
+fn p1(input: &str, target_line: i32) {
     let sensor_beacon_pairs = get_sensor_beacon_pairs(&input);
-    // let target_line = 10;
-    // for target_line in 0..4000000 {}
-    let target_line = 2000000;
     let mut covered_pairs: Vec<[i32; 2]> = vec![];
 
     for &[sensor, beacon] in &sensor_beacon_pairs {
@@ -71,4 +67,59 @@ fn main() {
         count += added;
     }
     dbg!(count);
+}
+
+fn p2(input: &str, bounds: i32) -> [i32; 2] {
+    let sensor_beacon_pairs = get_sensor_beacon_pairs(&input);
+    let mut beacons = HashSet::<[i32; 2]>::new();
+    for &[_, beacon] in &sensor_beacon_pairs {
+        beacons.insert(beacon);
+    }
+    for line_idx in 0..bounds {
+        let mut covered_pairs: Vec<[i32; 2]> = vec![];
+
+        for &[sensor, beacon] in &sensor_beacon_pairs {
+            let dist = manhattan_distance(sensor, beacon);
+            let remainder_dist = dist - (line_idx - sensor[1]).abs();
+            if remainder_dist < 0 {
+                continue;
+            }
+            covered_pairs.push([sensor[0] - remainder_dist, sensor[0] + remainder_dist]);
+        }
+
+        covered_pairs.sort();
+        let mut next_start = 0;
+        for &[start, end] in &covered_pairs {
+            let start_clamped = std::cmp::max(0, start);
+            let end_clamped = std::cmp::min(bounds, end);
+            if next_start < start_clamped {
+                for j in next_start..start_clamped {
+                    let candidate = [line_idx, j];
+                    if !beacons.contains(&candidate) {
+                        return candidate;
+                    }
+                }
+            }
+            let start_clamped = std::cmp::max(next_start, start_clamped);
+            if start_clamped > end_clamped {
+                continue;
+            }
+            next_start = end_clamped + 1;
+            if next_start > bounds {
+                break;
+            }
+        }
+    }
+    panic!("beacon not found");
+}
+
+fn main() {
+    let input = get_input();
+
+    // p1(&input, 10);
+    // let [y, x] = p2(&input, 20);
+    p1(&input, 2000000);
+    let [y, x] = p2(&input, 4000000);
+    dbg!(y, x);
+    dbg!(4000000 * (x as i64) + (y as i64));
 }
