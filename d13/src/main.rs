@@ -98,7 +98,6 @@ fn parse_input(input: &str) -> Vec<[Signal; 2]> {
             break;
         }
     }
-
     res
 }
 
