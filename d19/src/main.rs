@@ -166,13 +166,10 @@ fn get_optimistic_estimate(
     robots_initial: &Materials,
     robots: &Materials,
 ) -> i32 {
-    // let mut res: Vec<i32> = vec![];
-
     if time == 0 {
         return materials.geode;
     }
     let materials_next_step = materials.clone() + robots.clone();
-    // dbg!(&materials_next_step);
     let robots_next_step = robots_initial.clone()
         + Materials {
             ore: get_optimistic_robot_count(&materials, &blueprint.ore_robot_cost),
@@ -188,8 +185,6 @@ fn get_optimistic_estimate(
         &robots_initial,
         &robots_next_step,
     );
-    // res.push(materials_next_step.geode);
-    // res
 }
 
 fn time_to_buy_single_resource(mat: i32, rbt: i32, cost: i32) -> Option<i32> {
