@@ -1,3 +1,5 @@
+use num::Zero;
+
 fn get_input() -> String {
     let args: Vec<String> = std::env::args().collect();
     let path = args.get(1).expect("No file given!");
@@ -11,12 +13,47 @@ enum Tile {
     Wall,
 }
 
+fn gemm<
+    T: num::Integer + Copy + std::ops::AddAssign,
+    const N: usize,
+    const M: usize,
+    const L: usize,
+>(
+    a: [[T; N]; M],
+    b: [[T; L]; N],
+) -> [[T; L]; M] {
+    let mut res: [[T; L]; M] = [[T::zero(); L]; M];
+    for i in 0..M {
+        for k in 0..N {
+            for j in 0..L {
+                res[i][j] += a[i][k] * b[k][j];
+            }
+        }
+    }
+    res
+}
+
+fn gemv<T: num::Integer + Copy + std::ops::AddAssign, const N: usize, const M: usize>(
+    a: [[T; M]; N],
+    b: [T; M],
+) -> [T; N] {
+    let mut res: [T; N] = [T::zero(); N];
+    for i in 0..N {
+        for j in 0..M {
+            res[i] += a[i][j] * b[j];
+        }
+    }
+    res
+}
+
 #[derive(Debug)]
 enum Move {
     Advance(i32),
     TurnClockwise,
     TurnCounterclockwise,
 }
+
+
 
 fn parse_input(input: &str) -> (Vec<Vec<Tile>>, Vec<Move>) {
     let (field, moves) = input.split_once("\n\n").unwrap();
@@ -85,13 +122,14 @@ fn parse_input(input: &str) -> (Vec<Vec<Tile>>, Vec<Move>) {
     (res_field, res_moves)
 }
 
-#[derive(Debug, Clone)]
-enum Direction {
-    Left,
-    Right,
-    Up,
-    Down,
-}
+// #[derive(Debug, Clone)]
+// enum Direction {
+type Direction = [i32;2];
+const LEFT: Direction = [-1, 0];
+const RIGHT: Direction = [1, 0];
+const UP:Direction = [0, 1];
+const DOWN: Direction = [0, -1];
+
 
 #[derive(Debug, Clone)]
 struct Location {
@@ -110,16 +148,19 @@ fn make_move(
     ) {
         let new_direction = match move_to_execute {
             Move::TurnClockwise => match initial_location.direction {
-                Direction::Up => Direction::Right,
-                Direction::Right => Direction::Down,
-                Direction::Down => Direction::Left,
-                Direction::Left => Direction::Up,
+                UP => RIGHT,
+                RIGHT => DOWN,
+                DOWN => LEFT,
+                LEFT => UP,
+                _ => {panic!("Invalid direction!");}
+
             },
             Move::TurnCounterclockwise => match initial_location.direction {
-                Direction::Up => Direction::Left,
-                Direction::Left => Direction::Down,
-                Direction::Down => Direction::Right,
-                Direction::Right => Direction::Up,
+                UP => LEFT,
+                LEFT => DOWN,
+                DOWN => RIGHT,
+                RIGHT => UP,
+                _ => {panic!("Invalid direction!");}
             },
             _ => {
                 panic!("Logic error!");
@@ -159,25 +200,38 @@ fn get_next_pos(
     let mut candidate_pos = position.clone();
     loop {
         candidate_pos = get_candidate_pos(field, candidate_pos, direction);
-        let new_val = &field[candidate_pos[0]][ candidate_pos[1]];
+        let new_val = &field[candidate_pos[0]][candidate_pos[1]];
         match *new_val {
-            Tile::Open => {return Some(candidate_pos);},
-            Tile::Wall => {return None;},
-            Tile::Void => {continue;}
+            Tile::Open => {
+                return Some(candidate_pos);
+            }
+            Tile::Wall => {
+                return None;
+            }
+            Tile::Void => {
+                continue;
+            }
         }
-
     }
 }
 
-fn get_candidate_pos(field: &Vec<Vec<Tile>>, position: [usize; 2], direction: &Direction) -> [usize; 2]{
+fn get_candidate_pos(
+    field: &Vec<Vec<Tile>>,
+    position: [usize; 2],
+    direction: &Direction,
+) -> [usize; 2] {
     let ysize = field.len();
     let xsize = field[0].len();
-    let mut new_pos = match direction {
-        Direction::Up => [(position[0] + ysize) - 1, position[1]],
-        Direction::Down => [position[0] + 1, position[1]],
-        Direction::Right => [position[0] , position[1] + 1],
-        Direction::Left => [position[0], (position[1] + xsize) - 1],
-    };
+    let mut new_pos = [position[0] + ysize, position[1] + xsize];
+    new_pos[0] = (new_pos[0] as i32 - direction[1]) as usize;
+    new_pos[1] = (new_pos[1] as i32 + direction[0]) as usize;
+    // let mut new_pos = match direction {
+    //     UP => [(position[0] + ysize) - 1, position[1]],
+    //     DOWN => [position[0] + 1, position[1]],
+    //     RIGHT => [position[0], position[1] + 1],
+    //     LEFT => [position[0], (position[1] + xsize) - 1],
+    //     _ => {panic!("Invalid direction!");}
+    // };
     new_pos = [new_pos[0] % ysize, new_pos[1] % xsize];
     new_pos
 }
@@ -198,7 +252,7 @@ fn main() {
     dbg!(&starting_pos);
     let mut location = Location {
         position: starting_pos,
-        direction: Direction::Right,
+        direction: RIGHT,
     };
     println!("{}", moves.len());
     for (i, move_to_execute) in moves.iter().enumerate() {
@@ -207,16 +261,19 @@ fn main() {
         println!("{:?}", move_to_execute);
         location = make_move(&field, &location, &move_to_execute);
     }
-    let Location {direction: final_direction, position: [yval, xval]} = location;
+    let Location {
+        direction: final_direction,
+        position: [yval, xval],
+    } = location;
     let row = yval + 1;
     let col = xval + 1;
     let dir_val = match final_direction {
-        Direction::Right => 0,
-        Direction::Down => 1,
-        Direction::Left => 2,
-        Direction::Up => 3,
+        RIGHT => 0,
+        DOWN => 1,
+        LEFT => 2,
+        UP => 3,
+        _ => {panic!("Invalid direction!");}
     };
     let res = (1000 * row) + (4 * col) + dir_val;
     println!("Res: {}", res);
-
 }
