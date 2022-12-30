@@ -19,8 +19,8 @@ fn gemm<
     const M: usize,
     const L: usize,
 >(
-    a: [[T; N]; M],
-    b: [[T; L]; N],
+    a: &[[T; N]; M],
+    b: &[[T; L]; N],
 ) -> [[T; L]; M] {
     let mut res: [[T; L]; M] = [[T::zero(); L]; M];
     for i in 0..M {
@@ -34,8 +34,8 @@ fn gemm<
 }
 
 fn gemv<T: num::Integer + Copy + std::ops::AddAssign, const N: usize, const M: usize>(
-    a: [[T; M]; N],
-    b: [T; M],
+    a: &[[T; M]; N],
+    b: &[T; M],
 ) -> [T; N] {
     let mut res: [T; N] = [T::zero(); N];
     for i in 0..N {
@@ -46,11 +46,16 @@ fn gemv<T: num::Integer + Copy + std::ops::AddAssign, const N: usize, const M: u
     res
 }
 
+
+type TurnMatrix = [[i32;2];2];
+
+const CLOCKWISE: TurnMatrix = [[0, 1], [-1, 0]];
+const COUNTERCLOCKWISE: TurnMatrix = [[0, -1], [1, 0]];
+
 #[derive(Debug)]
 enum Move {
     Advance(i32),
-    TurnClockwise,
-    TurnCounterclockwise,
+    Turn(TurnMatrix),
 }
 
 
@@ -101,14 +106,14 @@ fn parse_input(input: &str) -> (Vec<Vec<Tile>>, Vec<Move>) {
                     res_moves.push(Move::Advance(move_size_str.parse::<i32>().unwrap()));
                 }
                 move_size_str.clear();
-                res_moves.push(Move::TurnClockwise);
+                res_moves.push(Move::Turn(CLOCKWISE));
             }
             'L' => {
                 if move_size_str.len() > 0 {
                     res_moves.push(Move::Advance(move_size_str.parse::<i32>().unwrap()));
                 }
                 move_size_str.clear();
-                res_moves.push(Move::TurnCounterclockwise);
+                res_moves.push(Move::Turn(COUNTERCLOCKWISE));
             }
             _ => {
                 move_size_str.push(char);
@@ -122,8 +127,6 @@ fn parse_input(input: &str) -> (Vec<Vec<Tile>>, Vec<Move>) {
     (res_field, res_moves)
 }
 
-// #[derive(Debug, Clone)]
-// enum Direction {
 type Direction = [i32;2];
 const LEFT: Direction = [-1, 0];
 const RIGHT: Direction = [1, 0];
@@ -142,30 +145,8 @@ fn make_move(
     initial_location: &Location,
     move_to_execute: &Move,
 ) -> Location {
-    if matches!(
-        move_to_execute,
-        Move::TurnClockwise | Move::TurnCounterclockwise
-    ) {
-        let new_direction = match move_to_execute {
-            Move::TurnClockwise => match initial_location.direction {
-                UP => RIGHT,
-                RIGHT => DOWN,
-                DOWN => LEFT,
-                LEFT => UP,
-                _ => {panic!("Invalid direction!");}
-
-            },
-            Move::TurnCounterclockwise => match initial_location.direction {
-                UP => LEFT,
-                LEFT => DOWN,
-                DOWN => RIGHT,
-                RIGHT => UP,
-                _ => {panic!("Invalid direction!");}
-            },
-            _ => {
-                panic!("Logic error!");
-            }
-        };
+    if let Move::Turn(turn_matrix) = move_to_execute {
+        let new_direction = gemv(turn_matrix, &initial_location.direction);
         return Location {
             position: initial_location.position.clone(),
             direction: new_direction,
@@ -225,13 +206,6 @@ fn get_candidate_pos(
     let mut new_pos = [position[0] + ysize, position[1] + xsize];
     new_pos[0] = (new_pos[0] as i32 - direction[1]) as usize;
     new_pos[1] = (new_pos[1] as i32 + direction[0]) as usize;
-    // let mut new_pos = match direction {
-    //     UP => [(position[0] + ysize) - 1, position[1]],
-    //     DOWN => [position[0] + 1, position[1]],
-    //     RIGHT => [position[0], position[1] + 1],
-    //     LEFT => [position[0], (position[1] + xsize) - 1],
-    //     _ => {panic!("Invalid direction!");}
-    // };
     new_pos = [new_pos[0] % ysize, new_pos[1] % xsize];
     new_pos
 }
